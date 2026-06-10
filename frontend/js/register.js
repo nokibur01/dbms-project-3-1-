@@ -4,43 +4,73 @@ document.getElementById("profilePic").addEventListener("change", function () {
     const preview = document.getElementById("imagePreview");
 
     if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-        };
-        reader.readAsDataURL(file);
+        compressImage(file, function(compressed) {
+            preview.innerHTML = `<img src="${compressed}" alt="Preview">`;
+        });
     }
 });
 
+// ── Compress image ────────────────────────────────────
+function compressImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+            const canvas  = document.createElement("canvas");
+            const maxSize = 400;
+            let width     = img.width;
+            let height    = img.height;
+
+            if (width > height) {
+                if (width > maxSize) {
+                    height = (height * maxSize) / width;
+                    width  = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width  = (width * maxSize) / height;
+                    height = maxSize;
+                }
+            }
+
+            canvas.width  = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            callback(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 // ── Register ──────────────────────────────────────────
 function register() {
-    const username   = document.getElementById("username").value;
-    const email      = document.getElementById("email").value;
-    const password   = document.getElementById("password").value;
-    const fullName   = document.getElementById("fullName").value;
-    const dob        = document.getElementById("dob").value;
-    const gender     = document.getElementById("gender").value;
-    const phone      = document.getElementById("phone").value;
-    const city       = document.getElementById("city").value;
-    const picFile    = document.getElementById("profilePic").files[0];
+    const username = document.getElementById("username").value;
+    const email    = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const fullName = document.getElementById("fullName").value;
+    const dob      = document.getElementById("dob").value;
+    const gender   = document.getElementById("gender").value;
+    const phone    = document.getElementById("phone").value;
+    const city     = document.getElementById("city").value;
+    const picFile  = document.getElementById("profilePic").files[0];
 
     if (!username || !email || !password) {
         document.getElementById("message").innerText = "Username, email and password are required";
         return;
     }
 
-    // Convert image to Base64 then send
     if (picFile) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            sendRegister(username, email, password, fullName, dob, gender, phone, city, e.target.result);
-        };
-        reader.readAsDataURL(picFile);
+        compressImage(picFile, function(compressed) {
+            sendRegister(username, email, password, fullName, dob, gender, phone, city, compressed);
+        });
     } else {
         sendRegister(username, email, password, fullName, dob, gender, phone, city, "");
     }
 }
 
+// ── Send register ─────────────────────────────────────
 function sendRegister(username, email, password, fullName, dob, gender, phone, city, profilePic) {
     fetch("http://localhost:3000/user/register", {
         method: "POST",

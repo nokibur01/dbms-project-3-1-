@@ -286,6 +286,43 @@
     color: #6c5ce7 !important;
 }
 
+/* ── Post label ────────────────────────────────────── */
+.post-label {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.post-label.hot {
+    background: #ffe0e0;
+    color: #d63031;
+}
+
+.post-label.popular {
+    background: #fff3e0;
+    color: #e17055;
+}
+
+.post-label.active {
+    background: #e8f5e9;
+    color: #00b894;
+}
+
+.post-label.new {
+    background: #f0f2f5;
+    color: #636e72;
+}
+
+/* ── Post author info ──────────────────────────────── */
+.post-author-info {
+    font-size: 11px;
+    color: #b2bec3;
+    margin-top: 2px;
+}
+
 /*Responsive*/
 @media (max-width: 768px) {
     .feed-layout {
@@ -380,4 +417,77 @@
     font-size: 13px !important;
     border-radius: 20px !important;
     flex-shrink: 0;
+}
+/* ── Reaction bar ───────────────────────────────────── */
+.reaction-bar {
+    position: relative;
+    display: inline-block;
+}
+
+.reaction-trigger {
+    cursor: pointer;
+    padding: 7px 16px;
+    background: #f5f6fa;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #636e72;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.reaction-trigger:hover {
+    background: #ede9fe;
+    color: #6c5ce7;
+}
+
+/* ── Reaction picker ───────────────────────────────── */
+.reaction-picker {
+    position: absolute;
+    bottom: 42px;
+    left: 0;
+    background: #fff;
+    border-radius: 30px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    gap: 8px;
+    z-index: 50;
+    animation: popIn 0.15s ease;
+}
+
+@keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.reaction-picker span {
+    font-size: 24px;
+    cursor: pointer;
+    transition: transform 0.15s;
+    line-height: 1;
+}
+
+.reaction-picker span:hover {
+    transform: scale(1.4);
+}
+
+/* ── Reaction counts ───────────────────────────────── */
+.reaction-counts {
+    font-size: 13px;
+    color: #636e72;
+    margin-left: 8px;
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.reaction-counts span {
+    background: #f5f6fa;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
 }

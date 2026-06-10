@@ -38,7 +38,6 @@ function logout() {
     window.location.href = "login.html";
 }
 
-// Create post
 function createPost() {
     const content   = document.getElementById("postContent").value;
     const imageFile = document.getElementById("postImage").files[0];
@@ -49,14 +48,46 @@ function createPost() {
     }
 
     if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            sendPost(content, e.target.result);
-        };
-        reader.readAsDataURL(imageFile);
+        compressImage(imageFile, function(compressed) {
+            sendPost(content, compressed);
+        });
     } else {
         sendPost(content, "");
     }
+}
+
+// ── Compress image ────────────────────────────────────
+function compressImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+            const canvas  = document.createElement("canvas");
+            const maxSize = 800;
+            let width     = img.width;
+            let height    = img.height;
+
+            if (width > height) {
+                if (width > maxSize) {
+                    height = (height * maxSize) / width;
+                    width  = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width  = (width * maxSize) / height;
+                    height = maxSize;
+                }
+            }
+
+            canvas.width  = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            callback(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 
 function sendPost(content, imageUrl) {
@@ -80,7 +111,7 @@ function sendPost(content, imageUrl) {
 
 // Load posts
 function loadPosts() {
-    fetch("http://localhost:3000/post/feed?userId=" + userId)
+    fetch("http://localhost:3000/post/feed/rich?userId=" + userId)
     .then(res => res.json())
     .then(data => {
         const postsDiv = document.getElementById("posts");
@@ -100,9 +131,10 @@ function loadPosts() {
                         <img src="${getImage(post.profile_pic)}" class="post-avatar">
                         <div class="post-header-info">
                             <div class="post-author">
-                                <a href="user.html?userId=${post.user_id}">${post.username}</a>
+                                <a href="user.html?userId=${post.user_id}">${post.formatted_username}</a>
                             </div>
-                            <div class="post-date">${new Date(post.created_at).toLocaleString()}</div>
+                            <div class="post-date">${post.formatted_date}</div>
+                            <div class="post-author-info">${post.author_info}</div>
                         </div>
                         ${!isOwnPost ? `
                         <button class="follow-btn" id="followBtn-${post.user_id}"
@@ -115,24 +147,31 @@ function loadPosts() {
                     </div>
                     <div class="post-content">${post.content}</div>
                     ${post.image_url ? `<img src="${getImage(post.image_url)}" class="post-image">` : ""}
+                    <div class="post-label ${post.post_label.toLowerCase()}">${post.post_label}</div>
                     <div class="post-actions">
-                        <button onclick="likePost(${post.post_id})">
-                            Like ${post.like_count > 0 ? '(' + post.like_count + ')' : ''}
-                        </button>
-                        <button onclick="toggleComments(${post.post_id})">
-                            Comments ${post.comment_count > 0 ? '(' + post.comment_count + ')' : ''}
-                        </button>
-                    </div>
-
+                        <div class="reaction-bar" id="reactionBar-${post.post_id}">
+                            <div class="reaction-trigger" onclick="toggleReactionPicker(${post.post_id})">
+                                <span id="userReaction-${post.post_id}">👍</span> React
+                            </div>
+                            <div class="reaction-picker" id="picker-${post.post_id}" style="display:none;">
+                                <span onclick="react(${post.post_id}, 'like')"  title="Like">👍</span>
+                                <span onclick="react(${post.post_id}, 'love')"  title="Love">❤️</span>
+                                <span onclick="react(${post.post_id}, 'haha')"  title="Haha">😂</span>
+                                <span onclick="react(${post.post_id}, 'wow')"   title="Wow">😮</span>
+                            </div>
+                            <span class="reaction-counts" id="reactionCounts-${post.post_id}"></span>
+                            </div>
+                            <button onclick="toggleComments(${post.post_id})">
+                                Comments ${post.comment_count > 0 ? '(' + post.comment_count + ')' : ''}
+                            </button>
+                            </div>
                     <div class="comments-section" id="comments-${post.post_id}" style="display:none;">
                         <div class="comments-list" id="comments-list-${post.post_id}"></div>
                         <div class="comment-input-row">
                             <input type="text" id="commentInput-${post.post_id}"
                                    placeholder="Write a comment...">
                             <button class="comment-submit-btn"
-                                    onclick="submitComment(${post.post_id})">
-                                Post
-                            </button>
+                                    onclick="submitComment(${post.post_id})">Post</button>
                         </div>
                     </div>
                 </div>
@@ -142,10 +181,68 @@ function loadPosts() {
                 checkFollow(post.user_id);
             }
         });
+        // Load reactions for all posts
+        data.posts.forEach(post => {
+            loadReactions(post.post_id);
+        });
     })
     .catch(err => console.error(err));
 }
+// ── Load reactions for a post ─────────────────────────
+function loadReactions(postId) {
+    fetch(`http://localhost:3000/reaction/post?postId=${postId}&userId=${userId}`)
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) return;
 
+        const countsDiv = document.getElementById("reactionCounts-" + postId);
+        const userBtn   = document.getElementById("userReaction-" + postId);
+
+        // Show user current reaction
+        if (data.userReaction) {
+            const emojis = { like: '👍', love: '❤️', haha: '😂', wow: '😮' };
+            userBtn.innerText = emojis[data.userReaction];
+        } else {
+            userBtn.innerText = '👍';
+        }
+
+        // Show reaction counts
+        if (data.counts.length > 0) {
+            const emojis = { like: '👍', love: '❤️', haha: '😂', wow: '😮' };
+            countsDiv.innerHTML = data.counts
+                .map(r => `<span>${emojis[r.reaction_type]} ${r.count}</span>`)
+                .join(" ");
+        } else {
+            countsDiv.innerHTML = "";
+        }
+    });
+}
+
+// ── Toggle reaction picker ────────────────────────────
+function toggleReactionPicker(postId) {
+    const picker = document.getElementById("picker-" + postId);
+    // Close all other pickers first
+    document.querySelectorAll(".reaction-picker").forEach(p => {
+        if (p.id !== "picker-" + postId) p.style.display = "none";
+    });
+    picker.style.display = picker.style.display === "none" ? "flex" : "none";
+}
+
+// ── React to post ─────────────────────────────────────
+function react(postId, reactionType) {
+    fetch("http://localhost:3000/reaction/react", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, postId, reactionType })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById("picker-" + postId).style.display = "none";
+            loadReactions(postId);
+        }
+    });
+}
 // Toggle comments
 function toggleComments(postId) {
     const section = document.getElementById("comments-" + postId);

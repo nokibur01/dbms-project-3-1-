@@ -29,11 +29,12 @@
                 <p id="profileBio"></p>
                 <p id="profileCity"></p>
                 <p id="profileGender"></p>
+                <p id="profileJoined" style="font-size:12px; color:#b2bec3;"></p>
                 <div class="profile-stats">
-                    <span><strong id="postCount">0</strong> Posts</span>
-                    <span><strong id="followerCount">0</strong> Followers</span>
-                    <span><strong id="followingCount">0</strong> Following</span>
-                </div>
+                    <span onclick="openFollowModal('posts')"><strong id="postCount">0</strong> Posts</span>
+                    <span onclick="openFollowModal('followers')"><strong id="followerCount">0</strong> Followers</span>
+                    <span onclick="openFollowModal('following')"><strong id="followingCount">0</strong> Following</span>
+                    </div>
                 <button onclick="toggleEditForm()">Edit Profile</button>
             </div>
         </div>
@@ -82,6 +83,15 @@
             <div id="modalAddList" style="display:none;"></div>
         </div>
 
+    </div>
+    <!-- Followers/Following Modal -->
+    <div class="modal-overlay" id="followModalOverlay" onclick="closeFollowModal()"></div>
+    <div class="modal" id="followModal">
+        <div class="modal-header">
+            <h3 id="followModalTitle">Followers</h3>
+            <button class="modal-close" onclick="closeFollowModal()">X</button>
+        </div>
+        <div id="followModalList"></div>
     </div>
 
     <script src="../js/profile.js"></script>

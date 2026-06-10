@@ -224,4 +224,74 @@ router.delete("/admin/user/:id", (req, res) => {
     );
 });
 
+// ── GET USER DETAILS WITH FUNCTIONS ──────────────────
+// Uses: get_display_name, get_user_age, days_since_joined
+// format_username, DATE_FORMAT, UPPER, LOWER
+router.get("/details", (req, res) => {
+    const { userId } = req.query;
+
+    db.query(`
+        SELECT
+            user_id,
+            username,
+            email,
+            bio,
+            profile_pic,
+            city,
+            gender,
+            get_display_name(user_id)              AS display_name,
+            get_user_age(user_id)                  AS age,
+            days_since_joined(user_id)             AS days_joined,
+            format_username(username)              AS formatted_username,
+            UPPER(city)                            AS city_upper,
+            DATE_FORMAT(created_at, '%D %M %Y')   AS joined_date,
+            CONCAT(
+                IFNULL(full_name, username),
+                ' | ',
+                IFNULL(city, 'Unknown City')
+            )                                      AS profile_headline
+        FROM USERS
+        WHERE user_id = ?`,
+        [userId],
+        (err, result) => {
+            if (err) return res.json({ success: false, message: "Failed" });
+            res.json({ success: true, user: result[0] });
+        }
+    );
+});
+
+// ── SEARCH USERS CASE INSENSITIVE ─────────────────────
+// Uses: LOWER function for case insensitive search
+router.get("/search", (req, res) => {
+    const { query } = req.query;
+
+    db.query(`
+        SELECT
+            user_id,
+            username,
+            format_username(username)  AS formatted_username,
+            CONCAT(IFNULL(full_name, ''), ' ', IFNULL(city, '')) AS full_info,
+            bio,
+            profile_pic
+        FROM USERS
+        WHERE LOWER(username) LIKE LOWER(?)
+        OR    LOWER(full_name) LIKE LOWER(?)
+        OR    LOWER(city) LIKE LOWER(?)`,
+        [`%${query}%`, `%${query}%`, `%${query}%`],
+        (err, results) => {
+            if (err) return res.json({ success: false, message: "Failed" });
+            res.json({ success: true, users: results });
+        }
+    );
+});
+
+// ── GET USER STATS VIEW ───────────────────────────────
+router.get("/view/stats", (req, res) => {
+    db.query("SELECT * FROM user_stats ORDER BY total_followers DESC",
+        (err, results) => {
+            if (err) return res.json({ success: false, message: "Failed" });
+            res.json({ success: true, stats: results });
+        }
+    );
+});
 module.exports = router;

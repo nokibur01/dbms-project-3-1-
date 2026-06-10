@@ -350,6 +350,14 @@
     border-color: #6c5ce7;
     transform: translateY(-2px);
 }
+.profile-stats span {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.profile-stats span:hover {
+    color: #6c5ce7;
+}
 
 /* ── Responsive ────────────────────────────────────── */
 @media (max-width: 600px) {

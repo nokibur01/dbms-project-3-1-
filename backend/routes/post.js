@@ -192,4 +192,53 @@ router.delete("/admin/post/:id", (req, res) => {
     );
 });
 
+// ── GET FEED WITH FUNCTIONS ───────────────────────────
+// Uses: get_post_label, DATE_FORMAT, UPPER
+router.get("/feed/rich", (req, res) => {
+    const { userId } = req.query;
+
+    const sql = `
+        SELECT
+            p.post_id,
+            p.content,
+            p.image_url,
+            p.created_at,
+            u.username,
+            u.user_id,
+            u.profile_pic,
+            DATE_FORMAT(p.created_at, '%D %M %Y %H:%i') AS formatted_date,
+            get_post_label(p.post_id)                    AS post_label,
+            format_username(u.username)                  AS formatted_username,
+            CONCAT(
+                IFNULL(u.full_name, u.username),
+                ' from ',
+                IFNULL(u.city, 'Unknown')
+            )                                            AS author_info,
+            (SELECT COUNT(*) FROM LIKES    WHERE post_id = p.post_id) AS like_count,
+            (SELECT COUNT(*) FROM COMMENTS WHERE post_id = p.post_id) AS comment_count
+        FROM POSTS p
+        JOIN USERS u ON p.user_id = u.user_id
+        WHERE p.user_id = ?
+        OR p.user_id IN (
+            SELECT following_id FROM FOLLOWS WHERE follower_id = ?
+        )
+        ORDER BY p.created_at DESC
+    `;
+
+    db.query(sql, [userId, userId], (err, results) => {
+        if (err) return res.json({ success: false, message: "Failed" });
+        res.json({ success: true, posts: results });
+    });
+});
+
+// ── GET POST SUMMARY VIEW ─────────────────────────────
+router.get("/view/summary", (req, res) => {
+    db.query("SELECT * FROM post_summary ORDER BY total_likes DESC",
+        (err, results) => {
+            if (err) return res.json({ success: false, message: "Failed" });
+            res.json({ success: true, posts: results });
+        }
+    );
+});
+
 module.exports = router;

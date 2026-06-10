@@ -15,18 +15,24 @@ function getImage(src) {
 
 // Load profile
 function loadProfile() {
-    fetch("http://localhost:3000/user/profile?userId=" + userId)
+    fetch("http://localhost:3000/user/details?userId=" + userId)
     .then(res => res.json())
     .then(data => {
         if (data.success) {
             const user = data.user;
-            document.getElementById("profileUsername").innerText = user.username;
-            document.getElementById("profileBio").innerText      = user.bio || "No bio yet";
-            document.getElementById("profileFullName").innerText = user.full_name || "";
-            document.getElementById("profileCity").innerText     = user.city ? "📍 " + user.city : "";
-            document.getElementById("profileGender").innerText   = user.gender || "";
-            document.getElementById("editBio").value             = user.bio || "";
-            document.getElementById("profilePic").src            = getImage(user.profile_pic);
+            document.getElementById("profileUsername").innerText  = user.formatted_username || user.username;
+            document.getElementById("profileBio").innerText       = user.bio || "No bio yet";
+            document.getElementById("profileFullName").innerText  = user.display_name || "";
+            document.getElementById("profileCity").innerText      = user.city_upper ? user.city_upper : "";
+            document.getElementById("profileGender").innerText    = user.age ? "Age: " + user.age : "";
+            document.getElementById("editBio").value              = user.bio || "";
+            document.getElementById("profilePic").src             = getImage(user.profile_pic);
+
+            // Show joined date and days
+            if (document.getElementById("profileJoined")) {
+                document.getElementById("profileJoined").innerText =
+                    "Joined: " + user.joined_date + " (" + user.days_joined + " days ago)";
+            }
         }
     });
 }
@@ -282,6 +288,56 @@ function logout() {
     localStorage.removeItem("userId");
     localStorage.removeItem("username");
     window.location.href = "login.html";
+}
+// ── Open follow modal ─────────────────────────────────
+function openFollowModal(type) {
+    document.getElementById("followModalOverlay").style.display = "block";
+    document.getElementById("followModal").style.display        = "block";
+
+    if (type === "followers") {
+        document.getElementById("followModalTitle").innerText = "Followers";
+        loadFollowList("followers");
+    } else if (type === "following") {
+        document.getElementById("followModalTitle").innerText = "Following";
+        loadFollowList("following");
+    } else {
+        closeFollowModal();
+    }
+}
+
+// ── Close follow modal ────────────────────────────────
+function closeFollowModal() {
+    document.getElementById("followModalOverlay").style.display = "none";
+    document.getElementById("followModal").style.display        = "none";
+}
+
+// ── Load follow list ──────────────────────────────────
+function loadFollowList(type) {
+    fetch(`http://localhost:3000/follow/${type}?userId=${userId}`)
+    .then(res => res.json())
+    .then(data => {
+        const div  = document.getElementById("followModalList");
+        div.innerHTML = "";
+        const list = type === "followers" ? data.followers : data.following;
+
+        if (list.length === 0) {
+            div.innerHTML = `<p style='text-align:center; color:#b2bec3; padding:20px;'>No ${type} yet.</p>`;
+            return;
+        }
+
+        list.forEach(user => {
+            div.innerHTML += `
+                <div class="modal-post-card">
+                    <img src="${getImage(user.profile_pic)}"
+                         style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #a29bfe;">
+                    <a href="user.html?userId=${user.user_id}"
+                       style="font-weight:700; color:#2d3436; font-size:14px; flex:1; margin-left:12px;">
+                        ${user.username}
+                    </a>
+                </div>
+            `;
+        });
+    });
 }
 
 // Load everything

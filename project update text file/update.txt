@@ -1,10 +1,248 @@
-Table Creation          Done        schema.sqlData 
-Insertion               Done        All route files
-Frontend Design         Done        All CSS files
-Frontend-DB Connection  Done        All JS + route files
-Table Join              Done        post.js, comment.js, follow.js, album.js
-Proper JOIN operations  Done        post.js stats route 
-Constraints             Done        schema.sql + phpMyAdmin
-Aggregate Functions     Done        post.js + user.js stats 
-routesUpdate Operation  Done        post.js + user.jsSearch 
-Operation               Done        post.js + search.js
+## What I Implemented Where
+
+---
+
+### USERS Table
+**Used in:** `backend/routes/user.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/register` | New user created when someone registers |
+| SELECT | `/login` | Email and password checked to verify identity |
+| SELECT | `/profile` | Profile data loaded when visiting own profile |
+| SELECT | `/details` | Profile loaded with functions — age, display name, days joined |
+| SELECT | `/all` | All users fetched for search page |
+| SELECT | `/suggestions` | Users not yet followed fetched for sidebar |
+| UPDATE | `/update` | Bio and profile picture updated when user edits profile |
+| DELETE | `/admin/user/:id` | Admin deletes a user — triggers log_deleted_user automatically |
+
+---
+
+### POSTS Table
+**Used in:** `backend/routes/post.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/create` | New post saved when user submits — triggers log_new_post automatically |
+| SELECT | `/feed` | Posts fetched from followed users for news feed |
+| SELECT | `/feed/rich` | Same but with functions — formatted date, post label, author info |
+| SELECT | `/user` | All posts by one user fetched for profile page |
+| SELECT | `/search` | Posts searched by keyword using LIKE |
+| SELECT | `/stats` | Post stats fetched with like and comment counts |
+| UPDATE | `/edit` | Post content updated when user edits their post |
+| DELETE | `/admin/post/:id` | Admin deletes any post |
+
+---
+
+### COMMENTS Table
+**Used in:** `backend/routes/comment.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/add` | New comment saved when user submits comment |
+| SELECT | `/get` | All comments for a post fetched when user clicks Comments button |
+| DELETE | `/delete` | Comment deleted by its owner |
+
+---
+
+### LIKES Table
+**Used in:** `backend/routes/like.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/toggle` | Like added when user clicks Like — trigger prevent_duplicate_like blocks double liking |
+| SELECT | `/toggle` | Checked first to see if already liked |
+| DELETE | `/toggle` | Like removed if user already liked — unlike action |
+| SELECT | `/count` | Like count fetched for a post |
+
+---
+
+### REACTIONS Table
+**Used in:** `backend/routes/reaction.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/react` | New emoji reaction saved when user picks one |
+| SELECT | `/react` | Checked first to see if user already reacted |
+| UPDATE | `/react` | Reaction type changed if user picks a different emoji |
+| DELETE | `/react` | Reaction removed if user picks same emoji again |
+| SELECT | `/post` | All reaction counts fetched for a post to display under it |
+| SELECT | `/summary` | Full reaction summary fetched with JOIN for admin view |
+
+---
+
+### FOLLOWS Table
+**Used in:** `backend/routes/follow.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/toggle` | Follow relationship created when user clicks Follow |
+| SELECT | `/toggle` | Checked first to see if already following |
+| DELETE | `/toggle` | Follow relationship removed when user clicks Unfollow |
+| SELECT | `/followers` | All followers of a user fetched for profile modal |
+| SELECT | `/following` | All following of a user fetched for profile modal |
+| SELECT | `/check` | Single check if user A follows user B — used for Follow button state |
+
+---
+
+### ALBUMS Table
+**Used in:** `backend/routes/album.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/create` | New album created when user clicks Create Album |
+| SELECT | `/user` | All albums of a user fetched for profile page |
+| DELETE | `/delete` | Album deleted by its owner |
+
+---
+
+### ALBUM_POSTS Table
+**Used in:** `backend/routes/album.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| INSERT | `/addpost` | Post added to album when user clicks Add in modal |
+| SELECT | `/posts` | All posts inside an album fetched when album is opened |
+| DELETE | `/removepost` | Post removed from album when user clicks Remove |
+
+---
+
+### ADMINS Table
+**Used in:** `backend/routes/user.js`
+
+| Operation | Route | What Happens |
+|-----------|-------|-------------|
+| SELECT | `/admin/login` | Admin credentials verified when admin logs in |
+
+---
+
+### DELETED_USERS_LOG Table
+**Not called directly from backend**
+
+Filled automatically by the `log_deleted_user` trigger when any user is deleted. Stores user_id, username, email and deleted_at timestamp.
+
+```
+See it: phpMyAdmin → DELETED_USERS_LOG → Browse
+```
+
+---
+
+### POST_ACTIVITY_LOG Table
+**Not called directly from backend**
+
+Filled automatically by the `log_new_post` trigger when any post is created. Stores user_id, post_id, action and logged_at timestamp.
+
+```
+See it: phpMyAdmin → POST_ACTIVITY_LOG → Browse
+```
+
+---
+
+## Where Each SQL Feature Was Used
+
+### JOIN Operations
+
+| Query | Tables Joined | File | Purpose |
+|-------|--------------|------|---------|
+| Feed query | POSTS + USERS + FOLLOWS | post.js `/feed` | Get posts with author info from followed users |
+| Rich feed | POSTS + USERS + FOLLOWS | post.js `/feed/rich` | Same with functions applied |
+| Comments | COMMENTS + USERS | comment.js `/get` | Show username next to each comment |
+| Followers | FOLLOWS + USERS | follow.js `/followers` | Get follower profile details |
+| Following | FOLLOWS + USERS | follow.js `/following` | Get following profile details |
+| Album posts | ALBUM_POSTS + POSTS + USERS | album.js `/posts` | Get post content inside album |
+| Reaction summary | REACTIONS + POSTS + USERS | reaction.js `/summary` | Show who reacted to what |
+| Post stats | POSTS + USERS + LIKES + COMMENTS | post.js `/stats` | Full post statistics |
+| Admin users | USERS + POSTS + FOLLOWS | user.js `/admin/users` | User overview for admin |
+| Admin posts | POSTS + USERS + LIKES + COMMENTS | post.js `/admin/posts` | Post overview for admin |
+
+---
+
+### Aggregate Functions
+
+| Function | Query | File | Purpose |
+|----------|-------|------|---------|
+| COUNT(DISTINCT l.like_id) | Feed query | post.js | Count likes per post |
+| COUNT(DISTINCT c.comment_id) | Feed query | post.js | Count comments per post |
+| COUNT(DISTINCT r.reaction_id) | Reaction summary | reaction.js | Count reactions per type |
+| COUNT(DISTINCT p.post_id) | User stats | user.js | Count posts per user |
+| COUNT(DISTINCT f1.follower_id) | User stats | user.js | Count followers per user |
+| COUNT(DISTINCT f2.following_id) | User stats | user.js | Count following per user |
+| COUNT(*) | Reaction post route | reaction.js | Count each reaction type |
+| TIMESTAMPDIFF(YEAR, dob, CURDATE()) | get_user_age function | schema.sql | Calculate age |
+| DATEDIFF(CURDATE(), created_at) | days_since_joined function | schema.sql | Days since registration |
+
+---
+
+### Functions — Where Used
+
+| Function | Used In | Visible On |
+|----------|---------|-----------|
+| get_display_name() | user.js `/details` | Profile page — shows full name with city |
+| get_user_age() | user.js `/details` | Profile page — shows age |
+| days_since_joined() | user.js `/details` | Profile page — shows days since joined |
+| get_post_label() | post.js `/feed/rich` | Feed page — Hot/Popular/Active/New badge |
+| format_username() | post.js `/feed/rich` + user.js `/details` | Feed and profile — @username format |
+| are_friends() | Available via SQL | Can be tested in phpMyAdmin |
+
+---
+
+### Views — Where Used
+
+| View | Used In | Purpose |
+|------|---------|---------|
+| post_summary | post.js `/view/summary` | Simplified post data for reports |
+| user_stats | user.js `/view/stats` | Simplified user data for reports |
+
+---
+
+### Triggers — What They Watch
+
+| Trigger | Watches | Fires | Logs To |
+|---------|---------|-------|---------|
+| log_deleted_user | USERS table | BEFORE DELETE | DELETED_USERS_LOG |
+| prevent_duplicate_like | LIKES table | BEFORE INSERT | Blocks the insert |
+| log_new_post | POSTS table | AFTER INSERT | POST_ACTIVITY_LOG |
+
+---
+
+### Constraints — Where Applied
+
+| Constraint | Table | Column | Purpose |
+|------------|-------|--------|---------|
+| NOT NULL | USERS | username, email, password | Required fields |
+| NOT NULL | POSTS | user_id, content | Required fields |
+| NOT NULL | COMMENTS | post_id, user_id, text | Required fields |
+| UNIQUE | USERS | email, username | No duplicate accounts |
+| UNIQUE KEY | LIKES | user_id + post_id | No double liking |
+| UNIQUE KEY | REACTIONS | user_id + post_id | One reaction per post |
+| FOREIGN KEY CASCADE | All tables | user_id, post_id | Delete related data automatically |
+| PRIMARY KEY composite | FOLLOWS | follower_id + following_id | No duplicate follows |
+| PRIMARY KEY composite | ALBUM_POSTS | album_id + post_id | No duplicate album entries |
+| ENUM | USERS | gender | Only male/female/other |
+| ENUM | REACTIONS | reaction_type | Only like/love/haha/wow |
+| CHECK | POSTS | content | Cannot be empty |
+| CHECK | COMMENTS | text | Cannot be empty |
+| CHECK | FOLLOWS | follower_id != following_id | Cannot follow yourself |
+| CHECK | ALBUMS | title | Cannot be empty |
+
+---
+
+### Update Operations
+
+| What Gets Updated | Route | File | Trigger |
+|-------------------|-------|------|---------|
+| Post content | `/edit` | post.js | User edits their post |
+| User bio | `/update` | user.js | User edits profile |
+| User profile picture | `/update` | user.js | User changes profile picture |
+| Reaction type | `/react` | reaction.js | User changes their emoji reaction |
+
+---
+
+### Search Operations
+
+| What Gets Searched | Method | File | How |
+|-------------------|--------|------|-----|
+| Users by username | LOWER() + filter | user.js `/search` | Case insensitive LIKE |
+| Users by full name | LOWER() + LIKE | user.js `/search` | Searches full_name column |
+| Users by city | LOWER() + LIKE | user.js `/search` | Searches city column |
+| Posts by content | LIKE with % | post.js `/search` | Keyword anywhere in content |

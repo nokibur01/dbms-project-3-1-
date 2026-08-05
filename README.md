@@ -235,7 +235,7 @@ Make sure you have:
 ### 1. Clone the Repository
 
 ```bash
-git clone YOUR_REPOSITORY_URL
+git clone https://github.com/nokibur01/dbms-project-3-1-
 cd social-media-platform
 ```
 
@@ -288,11 +288,10 @@ Through this project, we gained practical experience with:
 
 ## 👥 Project Team
 
-Add your team members here:
-
-* **Your Name** — Backend / Database
-* **Team Member 2** — Frontend
-* **Team Member 3** — Backend / Database
+* **Nokibur Rahman** — Backend / Database / Tester
+* **Dhruba singh** — Frontend
+* **Rafsan Rafi** — Frontend
+* **Jannatul Ferdaous** _ Database Schema Design
 
 ---
 
